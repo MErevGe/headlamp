@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { SHOULD_AUTOBATCH } from '@reduxjs/toolkit';
+
 /**
  * This is as a list of parameters to be passed to the `runPlugin` function.
  * To reduce the ability of overridden prototypes from snooping on data,
@@ -328,6 +330,7 @@ export function identifyPackages(
 
 export type PluginRegistration = {
   active: boolean;
+  batch?: boolean;
   actions: import('redux').UnknownAction[];
 };
 
@@ -347,8 +350,12 @@ export function withPluginRegistration<T>(
   }
 }
 
-export function recordPluginRegistration(action: import('redux').UnknownAction): boolean {
-  if (currentRegistration && !currentRegistration.active) return false;
+export function recordPluginRegistration(
+  action: import('redux').UnknownAction
+): import('redux').UnknownAction | undefined {
+  if (currentRegistration && !currentRegistration.active) return undefined;
   currentRegistration?.actions.push(action);
-  return true;
+  return currentRegistration?.batch
+    ? { ...action, meta: { ...(action.meta as object), [SHOULD_AUTOBATCH]: true } }
+    : action;
 }
